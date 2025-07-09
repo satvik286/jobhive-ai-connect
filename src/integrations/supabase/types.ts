@@ -14,7 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      friendships: {
+        Row: {
+          addressee_id: string | null
+          created_at: string | null
+          id: string
+          requester_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          addressee_id?: string | null
+          created_at?: string | null
+          id?: string
+          requester_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          addressee_id?: string | null
+          created_at?: string | null
+          id?: string
+          requester_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          applicant_id: string | null
+          applied_at: string | null
+          cover_letter: string | null
+          employer_message: string | null
+          id: string
+          job_id: string
+          resume_url: string | null
+          reviewed_at: string | null
+          status: string | null
+        }
+        Insert: {
+          applicant_id?: string | null
+          applied_at?: string | null
+          cover_letter?: string | null
+          employer_message?: string | null
+          id?: string
+          job_id: string
+          resume_url?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          applicant_id?: string | null
+          applied_at?: string | null
+          cover_letter?: string | null
+          employer_message?: string | null
+          id?: string
+          job_id?: string
+          resume_url?: string | null
+          reviewed_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          company: string
+          created_at: string | null
+          description: string
+          employer_id: string | null
+          experience_level: string | null
+          id: string
+          is_active: boolean | null
+          job_type: string | null
+          location: string
+          required_skills: string[] | null
+          requirements: string
+          salary_range: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string | null
+          description: string
+          employer_id?: string | null
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type?: string | null
+          location: string
+          required_skills?: string[] | null
+          requirements: string
+          salary_range?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string | null
+          description?: string
+          employer_id?: string | null
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          job_type?: string | null
+          location?: string
+          required_skills?: string[] | null
+          requirements?: string
+          salary_range?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          job_id: string | null
+          message_type: string | null
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          job_id?: string | null
+          message_type?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          job_id?: string | null
+          message_type?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          experience: string | null
+          id: string
+          is_public: boolean | null
+          job_title: string | null
+          location: string | null
+          name: string | null
+          phone: string | null
+          resume_url: string | null
+          skills: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience?: string | null
+          id?: string
+          is_public?: boolean | null
+          job_title?: string | null
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          resume_url?: string | null
+          skills?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          experience?: string | null
+          id?: string
+          is_public?: boolean | null
+          job_title?: string | null
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          resume_url?: string | null
+          skills?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

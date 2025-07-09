@@ -7,9 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Sparkles, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { geminiService } from '@/services/geminiService';
+import { JobService } from '@/services/jobService';
+import { supabase } from '@/integrations/supabase/client';
 import AILoadingIndicator from '@/components/common/AILoadingIndicator';
 
 const PostJob: React.FC = () => {
@@ -17,21 +20,42 @@ const PostJob: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [skillInput, setSkillInput] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     company: '',
     location: '',
     description: '',
     requirements: '',
-    salaryRange: '',
-    jobType: 'full-time' as 'full-time' | 'part-time' | 'contract' | 'freelance',
+    salary_range: '',
+    job_type: 'full-time' as 'full-time' | 'part-time' | 'contract' | 'freelance',
+    required_skills: [] as string[],
+    experience_level: '',
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const addSkill = (skill: string) => {
+    const trimmedSkill = skill.trim();
+    if (trimmedSkill && !formData.required_skills.includes(trimmedSkill)) {
+      handleInputChange('required_skills', [...formData.required_skills, trimmedSkill]);
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    handleInputChange('required_skills', formData.required_skills.filter(skill => skill !== skillToRemove));
+  };
+
+  const handleSkillKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addSkill(skillInput);
     }
   };
 
@@ -43,8 +67,7 @@ const PostJob: React.FC = () => {
     if (!formData.location.trim()) errors.location = 'Location is required';
     if (!formData.description.trim()) errors.description = 'Job description is required';
     if (!formData.requirements.trim()) errors.requirements = 'Requirements are required';
-    if (!formData.salaryRange.trim()) errors.salaryRange = 'Salary range is required';
-    if (!formData.jobType) errors.jobType = 'Job type is required';
+    if (!formData.job_type) errors.job_type = 'Job type is required';
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -96,27 +119,24 @@ const PostJob: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('Posting job:', formData);
-      
-      // Simulate API delay with realistic loading
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Create the new job object
-      const newJob = {
-        id: Date.now().toString(),
-        ...formData,
-        employerId: 'current-user-id',
-        createdAt: new Date().toISOString(),
-        isActive: true,
-      };
-      
-      console.log('Job posted successfully:', newJob);
-      
-      // Store the new job in localStorage for the dashboard to pick up
-      const existingJobs = localStorage.getItem('newlyPostedJobs');
-      const jobsArray = existingJobs ? JSON.parse(existingJobs) : [];
-      jobsArray.push(newJob);
-      localStorage.setItem('newlyPostedJobs', JSON.stringify(jobsArray));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      await JobService.createJob({
+        title: formData.title,
+        company: formData.company,
+        location: formData.location,
+        description: formData.description,
+        requirements: formData.requirements,
+        salary_range: formData.salary_range || null,
+        job_type: formData.job_type,
+        required_skills: formData.required_skills.length > 0 ? formData.required_skills : null,
+        experience_level: formData.experience_level || null,
+        employer_id: user.id,
+        is_active: true,
+      });
       
       toast({
         title: "🎉 Job Posted Successfully!",
@@ -131,8 +151,10 @@ const PostJob: React.FC = () => {
         location: '',
         description: '',
         requirements: '',
-        salaryRange: '',
-        jobType: 'full-time',
+        salary_range: '',
+        job_type: 'full-time',
+        required_skills: [],
+        experience_level: '',
       });
       
       // Navigate back to dashboard after a short delay
@@ -245,8 +267,8 @@ const PostJob: React.FC = () => {
                   </div>
                   <div>
                     <Label htmlFor="jobType">Job Type *</Label>
-                    <Select value={formData.jobType} onValueChange={(value) => handleInputChange('jobType', value)}>
-                      <SelectTrigger className={`transition-all ${formErrors.jobType ? 'border-red-500 ring-red-200' : ''}`}>
+                    <Select value={formData.job_type} onValueChange={(value) => handleInputChange('job_type', value)}>
+                      <SelectTrigger className={`transition-all ${formErrors.job_type ? 'border-red-500 ring-red-200' : ''}`}>
                         <SelectValue placeholder="Select job type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -256,30 +278,57 @@ const PostJob: React.FC = () => {
                         <SelectItem value="freelance">Freelance</SelectItem>
                       </SelectContent>
                     </Select>
-                    {formErrors.jobType && (
-                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
-                        <AlertCircle className="h-3 w-3" />
-                        {formErrors.jobType}
-                      </p>
-                    )}
                   </div>
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="salaryRange">Salary Range</Label>
+                    <Input
+                      id="salaryRange"
+                      placeholder="e.g. $80k - $120k or Competitive"
+                      value={formData.salary_range}
+                      onChange={(e) => handleInputChange('salary_range', e.target.value)}
+                      className="form-input transition-all"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="experienceLevel">Experience Level</Label>
+                    <Input
+                      id="experienceLevel"
+                      placeholder="e.g. Senior, Mid-level, Entry"
+                      value={formData.experience_level}
+                      onChange={(e) => handleInputChange('experience_level', e.target.value)}
+                      className="form-input transition-all"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="salaryRange">Salary Range *</Label>
+                  <Label htmlFor="skills">Required Skills</Label>
                   <Input
-                    id="salaryRange"
-                    placeholder="e.g. $80k - $120k or Competitive"
-                    value={formData.salaryRange}
-                    onChange={(e) => handleInputChange('salaryRange', e.target.value)}
-                    className={`form-input transition-all ${formErrors.salaryRange ? 'border-red-500 ring-red-200' : ''}`}
-                    required
+                    id="skills"
+                    placeholder="Type skills and press Enter (e.g. React, Python, Marketing)"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyPress={handleSkillKeyPress}
+                    onBlur={() => skillInput && addSkill(skillInput)}
+                    className="form-input transition-all"
                   />
-                  {formErrors.salaryRange && (
-                    <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.salaryRange}
-                    </p>
+                  {formData.required_skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.required_skills.map((skill) => (
+                        <Badge
+                          key={skill}
+                          variant="secondary"
+                          className="px-3 py-1 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer transition-colors"
+                          onClick={() => removeSkill(skill)}
+                        >
+                          {skill}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
               </CardContent>
