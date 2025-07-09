@@ -13,6 +13,7 @@ import GeminiChat from "@/components/common/GeminiChat";
 import Home from "./pages/Home";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import Profile from "./pages/Profile";
 import JobSeekerDashboard from "./pages/JobSeeker/Dashboard";
 import JobDetails from "./pages/JobSeeker/JobDetails";
 import EmployerDashboard from "./pages/Employer/EmployerDashboard";
@@ -34,6 +35,13 @@ const App = () => (
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Protected Profile Route */}
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               
               {/* Job Seeker Routes */}
               <Route path="/dashboard" element={

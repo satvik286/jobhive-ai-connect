@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { geminiService } from '@/services/geminiService';
+import AILoadingIndicator from '@/components/common/AILoadingIndicator';
 
 const PostJob: React.FC = () => {
   const navigate = useNavigate();
@@ -65,8 +66,8 @@ const PostJob: React.FC = () => {
       const description = await geminiService.generateJobDescription(formData.title, formData.company);
       setFormData(prev => ({ ...prev, description }));
       toast({
-        title: "Description Generated",
-        description: "AI has generated a job description for you",
+        title: "Description Generated! ✨",
+        description: "AI has created a professional job description for you",
       });
     } catch (error) {
       console.error('Error generating description:', error);
@@ -95,13 +96,12 @@ const PostJob: React.FC = () => {
     setLoading(true);
 
     try {
-      // Mock API call - replace with real API
       console.log('Posting job:', formData);
       
-      // Simulate API delay with progress
+      // Simulate API delay with realistic loading
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock successful response
+      // Create the new job object
       const newJob = {
         id: Date.now().toString(),
         ...formData,
@@ -112,8 +112,14 @@ const PostJob: React.FC = () => {
       
       console.log('Job posted successfully:', newJob);
       
+      // Store the new job in localStorage for the dashboard to pick up
+      const existingJobs = localStorage.getItem('newlyPostedJobs');
+      const jobsArray = existingJobs ? JSON.parse(existingJobs) : [];
+      jobsArray.push(newJob);
+      localStorage.setItem('newlyPostedJobs', JSON.stringify(jobsArray));
+      
       toast({
-        title: "Job Posted Successfully!",
+        title: "🎉 Job Posted Successfully!",
         description: "Your job posting is now live and visible to candidates",
         duration: 5000,
       });
@@ -129,7 +135,7 @@ const PostJob: React.FC = () => {
         jobType: 'full-time',
       });
       
-      // Navigate after short delay to show success message
+      // Navigate back to dashboard after a short delay
       setTimeout(() => {
         navigate('/employer');
       }, 1500);
@@ -151,7 +157,7 @@ const PostJob: React.FC = () => {
       {/* Header */}
       <div className="mb-8">
         <Link to="/employer">
-          <Button variant="ghost" className="mb-4 hover:bg-primary/10 transition-colors">
+          <Button variant="ghost" className="mb-4 hover:bg-primary/10 transition-all duration-300 hover:scale-105">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -162,11 +168,18 @@ const PostJob: React.FC = () => {
         <p className="text-muted-foreground text-lg">Fill in the details to create your job posting</p>
       </div>
 
+      {/* AI Loading Indicator */}
+      {generatingDescription && (
+        <div className="mb-6">
+          <AILoadingIndicator message="AI is crafting your job description..." size="md" />
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="card-enhanced border-2">
+            <Card className="card-enhanced border-2 hover:shadow-lg transition-all duration-300">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-blue-50">
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-primary" />
@@ -183,11 +196,11 @@ const PostJob: React.FC = () => {
                       placeholder="e.g. Senior Frontend Developer"
                       value={formData.title}
                       onChange={(e) => handleInputChange('title', e.target.value)}
-                      className={`form-input transition-all ${formErrors.title ? 'border-red-500' : ''}`}
+                      className={`form-input transition-all ${formErrors.title ? 'border-red-500 ring-red-200' : ''}`}
                       required
                     />
                     {formErrors.title && (
-                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
                         <AlertCircle className="h-3 w-3" />
                         {formErrors.title}
                       </p>
@@ -200,11 +213,11 @@ const PostJob: React.FC = () => {
                       placeholder="Your company name"
                       value={formData.company}
                       onChange={(e) => handleInputChange('company', e.target.value)}
-                      className={`form-input transition-all ${formErrors.company ? 'border-red-500' : ''}`}
+                      className={`form-input transition-all ${formErrors.company ? 'border-red-500 ring-red-200' : ''}`}
                       required
                     />
                     {formErrors.company && (
-                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
                         <AlertCircle className="h-3 w-3" />
                         {formErrors.company}
                       </p>
@@ -220,11 +233,11 @@ const PostJob: React.FC = () => {
                       placeholder="e.g. San Francisco, CA or Remote"
                       value={formData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      className={`form-input transition-all ${formErrors.location ? 'border-red-500' : ''}`}
+                      className={`form-input transition-all ${formErrors.location ? 'border-red-500 ring-red-200' : ''}`}
                       required
                     />
                     {formErrors.location && (
-                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
                         <AlertCircle className="h-3 w-3" />
                         {formErrors.location}
                       </p>
@@ -233,7 +246,7 @@ const PostJob: React.FC = () => {
                   <div>
                     <Label htmlFor="jobType">Job Type *</Label>
                     <Select value={formData.jobType} onValueChange={(value) => handleInputChange('jobType', value)}>
-                      <SelectTrigger className={`transition-all ${formErrors.jobType ? 'border-red-500' : ''}`}>
+                      <SelectTrigger className={`transition-all ${formErrors.jobType ? 'border-red-500 ring-red-200' : ''}`}>
                         <SelectValue placeholder="Select job type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -244,7 +257,7 @@ const PostJob: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {formErrors.jobType && (
-                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                      <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
                         <AlertCircle className="h-3 w-3" />
                         {formErrors.jobType}
                       </p>
@@ -259,11 +272,11 @@ const PostJob: React.FC = () => {
                     placeholder="e.g. $80k - $120k or Competitive"
                     value={formData.salaryRange}
                     onChange={(e) => handleInputChange('salaryRange', e.target.value)}
-                    className={`form-input transition-all ${formErrors.salaryRange ? 'border-red-500' : ''}`}
+                    className={`form-input transition-all ${formErrors.salaryRange ? 'border-red-500 ring-red-200' : ''}`}
                     required
                   />
                   {formErrors.salaryRange && (
-                    <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                    <p className="text-sm text-red-600 mt-1 flex items-center gap-1 animate-fade-in">
                       <AlertCircle className="h-3 w-3" />
                       {formErrors.salaryRange}
                     </p>
@@ -272,7 +285,7 @@ const PostJob: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="card-enhanced border-2">
+            <Card className="card-enhanced border-2 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -284,9 +297,13 @@ const PostJob: React.FC = () => {
                     variant="outline"
                     onClick={generateJobDescription}
                     disabled={generatingDescription || !formData.title || !formData.company}
-                    className="ai-generate-btn transition-all duration-300"
+                    className="hover:bg-primary/10 transition-all duration-300 hover:scale-105"
                   >
-                    <Sparkles className={`h-4 w-4 mr-2 ${generatingDescription ? 'animate-spin' : ''}`} />
+                    {generatingDescription ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
                     {generatingDescription ? 'Generating...' : 'AI Generate'}
                   </Button>
                 </div>
@@ -297,11 +314,11 @@ const PostJob: React.FC = () => {
                   rows={8}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  className={`form-input resize-none transition-all ${formErrors.description ? 'border-red-500' : ''}`}
+                  className={`form-input resize-none transition-all ${formErrors.description ? 'border-red-500 ring-red-200' : ''}`}
                   required
                 />
                 {formErrors.description && (
-                  <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                  <p className="text-sm text-red-600 mt-2 flex items-center gap-1 animate-fade-in">
                     <AlertCircle className="h-3 w-3" />
                     {formErrors.description}
                   </p>
@@ -309,7 +326,7 @@ const PostJob: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="card-enhanced border-2">
+            <Card className="card-enhanced border-2 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <CardTitle>Requirements</CardTitle>
                 <CardDescription>Skills, experience, and qualifications needed</CardDescription>
@@ -320,11 +337,11 @@ const PostJob: React.FC = () => {
                   rows={6}
                   value={formData.requirements}
                   onChange={(e) => handleInputChange('requirements', e.target.value)}
-                  className={`form-input resize-none transition-all ${formErrors.requirements ? 'border-red-500' : ''}`}
+                  className={`form-input resize-none transition-all ${formErrors.requirements ? 'border-red-500 ring-red-200' : ''}`}
                   required
                 />
                 {formErrors.requirements && (
-                  <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                  <p className="text-sm text-red-600 mt-2 flex items-center gap-1 animate-fade-in">
                     <AlertCircle className="h-3 w-3" />
                     {formErrors.requirements}
                   </p>
@@ -335,7 +352,7 @@ const PostJob: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card className="card-enhanced border-2">
+            <Card className="card-enhanced border-2 hover:shadow-lg transition-all duration-300">
               <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100">
                 <CardTitle className="text-emerald-800">Publishing Options</CardTitle>
               </CardHeader>
@@ -364,7 +381,7 @@ const PostJob: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="card-enhanced border-2">
+            <Card className="card-enhanced border-2 hover:shadow-lg transition-all duration-300">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <CardTitle className="text-blue-800">Need Help?</CardTitle>
               </CardHeader>
@@ -384,20 +401,23 @@ const PostJob: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/20">
+            <Card className="border-2 border-primary/20 hover:shadow-lg transition-all duration-300">
               <CardContent className="pt-6">
                 <Button 
                   type="submit" 
-                  className="w-full btn-primary text-white font-medium py-3 text-lg" 
+                  className="w-full btn-primary text-white font-medium py-3 text-lg transition-all hover:scale-105" 
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Loader2 className="animate-spin h-5 w-5 mr-2" />
                       Posting Job...
                     </>
                   ) : (
-                    'Post Job'
+                    <>
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Post Job
+                    </>
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3 text-center">
