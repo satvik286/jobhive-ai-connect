@@ -12,7 +12,7 @@ export class JobService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as DatabaseJob;
   }
 
   static async getActiveJobs(): Promise<DatabaseJob[]> {
@@ -23,7 +23,7 @@ export class JobService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DatabaseJob[];
   }
 
   static async getEmployerJobs(employerId: string): Promise<DatabaseJob[]> {
@@ -34,7 +34,7 @@ export class JobService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DatabaseJob[];
   }
 
   static async searchJobs(skills: string[], location?: string): Promise<DatabaseJob[]> {
@@ -54,7 +54,7 @@ export class JobService {
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DatabaseJob[];
   }
 
   static async getJobApplications(jobId: string): Promise<DatabaseJobApplication[]> {
@@ -65,7 +65,7 @@ export class JobService {
       .order('applied_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DatabaseJobApplication[];
   }
 
   static async applyToJob(applicationData: Omit<DatabaseJobApplication, 'id' | 'applied_at' | 'reviewed_at'>): Promise<DatabaseJobApplication> {
@@ -76,7 +76,7 @@ export class JobService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as DatabaseJobApplication;
   }
 
   static async updateApplicationStatus(
@@ -101,7 +101,7 @@ export class JobService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as DatabaseJobApplication;
   }
 
   static async deleteJob(jobId: string): Promise<void> {
