@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '@/types';
-import { jwtDecode } from 'jwt-decode';
 import { toast } from '@/hooks/use-toast';
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,8 +25,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (token) {
       try {
-        const decoded: any = jwtDecode(token);
-        if (decoded.exp * 1000 > Date.now()) {
+        // Parse the token properly - it's base64 encoded JSON for our mock system
+        const decoded = JSON.parse(atob(token));
+        
+        // Check if token is expired
+        if (decoded.exp && decoded.exp * 1000 > Date.now()) {
           setUser({
             id: decoded.id,
             email: decoded.email,
@@ -57,10 +59,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: email.includes('employer') ? 'employer' as const : 'jobseeker' as const,
       };
 
-      const mockToken = btoa(JSON.stringify({
+      // Create a proper base64 encoded token
+      const tokenPayload = {
         ...mockUser,
         exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-      }));
+      };
+      
+      const mockToken = btoa(JSON.stringify(tokenPayload));
 
       localStorage.setItem('token', mockToken);
       setToken(mockToken);
@@ -90,10 +95,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role,
       };
 
-      const mockToken = btoa(JSON.stringify({
+      // Create a proper base64 encoded token
+      const tokenPayload = {
         ...mockUser,
         exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-      }));
+      };
+      
+      const mockToken = btoa(JSON.stringify(tokenPayload));
 
       localStorage.setItem('token', mockToken);
       setToken(mockToken);
