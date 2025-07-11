@@ -68,7 +68,7 @@ export class JobService {
     return (data || []) as DatabaseJobApplication[];
   }
 
-  static async applyToJob(applicationData: Omit<DatabaseJobApplication, 'id' | 'applied_at' | 'reviewed_at'>): Promise<DatabaseJobApplication> {
+  static async applyToJob(applicationData: Omit<DatabaseJobApplication, 'id' | 'applied_at' | 'reviewed_at' | 'employer_message'>): Promise<DatabaseJobApplication> {
     const { data, error } = await supabase
       .from('job_applications')
       .insert([applicationData])
