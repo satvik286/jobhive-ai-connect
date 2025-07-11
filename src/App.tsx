@@ -34,7 +34,9 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/auth/register" element={<Register />} />
               
               {/* Protected Profile Route */}
               <Route path="/profile" element={

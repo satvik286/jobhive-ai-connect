@@ -10,7 +10,7 @@ import { DatabaseJob, DatabaseJobApplication } from '@/types/supabase';
 import { Plus, Eye, Trash2, Users, Briefcase, TrendingUp, RefreshCw, MessageCircle, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { JobService } from '@/services/jobService';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<DatabaseJob[]>([]);
@@ -19,21 +19,15 @@ const EmployerDashboard: React.FC = () => {
   const [selectedJob, setSelectedJob] = useState<DatabaseJob | null>(null);
   const [showApplications, setShowApplications] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [employerMessage, setEmployerMessage] = useState('');
   const [updatingApplication, setUpdatingApplication] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const initializeData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        await loadEmployerJobs(user.id);
-      }
-    };
-
-    initializeData();
-  }, []);
+    if (user) {
+      loadEmployerJobs(user.id);
+    }
+  }, [user]);
 
   const loadEmployerJobs = async (employerId: string) => {
     try {
@@ -205,6 +199,18 @@ const EmployerDashboard: React.FC = () => {
 
   const totalApplications = Object.values(jobApplicationCounts).reduce((sum, count) => sum + count, 0);
   const pendingApplications = applications.filter(app => app.status === 'pending').length;
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
+        <p className="text-muted-foreground mb-6">You need to be logged in to access the employer dashboard</p>
+        <Link to="/login">
+          <Button>Log In</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">

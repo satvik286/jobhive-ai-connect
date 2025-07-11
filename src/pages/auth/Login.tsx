@@ -101,9 +101,7 @@ const Login: React.FC = () => {
             </div>
             
             <div className="text-center text-xs text-gray-500">
-              <p>Demo accounts:</p>
-              <p>Job Seeker: jobseeker@demo.com / password</p>
-              <p>Employer: employer@demo.com / password</p>
+              <p>Create an account to get started with JobPortal</p>
             </div>
           </CardFooter>
         </form>

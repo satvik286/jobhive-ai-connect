@@ -12,7 +12,7 @@ import { DatabaseJob } from '@/types/supabase';
 import { Search, MapPin, DollarSign, Clock, Bookmark, Eye, Filter, Send, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { JobService } from '@/services/jobService';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const JobSeekerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<DatabaseJob[]>([]);
@@ -30,20 +30,10 @@ const JobSeekerDashboard: React.FC = () => {
     resumeUrl: '',
   });
   const [applying, setApplying] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const initializeData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        await loadJobs();
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initializeData();
+    loadJobs();
   }, []);
 
   useEffect(() => {
@@ -200,7 +190,7 @@ const JobSeekerDashboard: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
         <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
         <p className="text-muted-foreground mb-6">You need to be logged in to view job opportunities</p>
-        <Link to="/auth/login">
+        <Link to="/login">
           <Button>Log In</Button>
         </Link>
       </div>
@@ -268,7 +258,7 @@ const JobSeekerDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Enhanced Quick Stats */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="transform hover:scale-105 transition-all duration-300 border-l-4 border-l-primary">
           <CardContent className="pt-6">

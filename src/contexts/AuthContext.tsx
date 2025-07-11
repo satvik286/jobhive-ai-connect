@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -23,62 +24,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      try {
-        // Parse the token properly - it's base64 encoded JSON for our mock system
-        const decoded = JSON.parse(atob(token));
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
         
-        // Check if token is expired
-        if (decoded.exp && decoded.exp * 1000 > Date.now()) {
-          setUser({
-            id: decoded.id,
-            email: decoded.email,
-            name: decoded.name,
-            role: decoded.role,
-          });
+        if (session?.user) {
+          // Create user object from Supabase session
+          const userData: User = {
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            role: session.user.user_metadata?.role || (session.user.email?.includes('employer') ? 'employer' : 'jobseeker'),
+          };
+          
+          setUser(userData);
+          setToken(session.access_token);
+          localStorage.setItem('token', session.access_token);
         } else {
-          localStorage.removeItem('token');
+          setUser(null);
           setToken(null);
+          localStorage.removeItem('token');
         }
-      } catch (error) {
-        console.error('Token decode error:', error);
-        localStorage.removeItem('token');
-        setToken(null);
+        setLoading(false);
       }
-    }
-    setLoading(false);
-  }, [token]);
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          role: session.user.user_metadata?.role || (session.user.email?.includes('employer') ? 'employer' : 'jobseeker'),
+        };
+        
+        setUser(userData);
+        setToken(session.access_token);
+        localStorage.setItem('token', session.access_token);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      // Mock API call - replace with real API
-      const mockUser = {
-        id: '1',
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        name: email.split('@')[0],
-        role: email.includes('employer') ? 'employer' as const : 'jobseeker' as const,
-      };
+        password,
+      });
 
-      // Create a proper base64 encoded token
-      const tokenPayload = {
-        ...mockUser,
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-      };
-      
-      const mockToken = btoa(JSON.stringify(tokenPayload));
+      if (error) throw error;
 
-      localStorage.setItem('token', mockToken);
-      setToken(mockToken);
-      setUser(mockUser);
-      
       toast({
         title: "Login successful",
-        description: `Welcome back, ${mockUser.name}!`,
+        description: `Welcome back!`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: "Please check your credentials",
+        description: error.message || "Please check your credentials",
         variant: "destructive",
       });
       throw error;
@@ -87,48 +96,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string, name: string, role: 'jobseeker' | 'employer') => {
     try {
-      // Mock API call - replace with real API
-      const mockUser = {
-        id: Date.now().toString(),
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name,
-        role,
-      };
+        password,
+        options: {
+          data: {
+            name,
+            role,
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
 
-      // Create a proper base64 encoded token
-      const tokenPayload = {
-        ...mockUser,
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-      };
-      
-      const mockToken = btoa(JSON.stringify(tokenPayload));
+      if (error) throw error;
 
-      localStorage.setItem('token', mockToken);
-      setToken(mockToken);
-      setUser(mockUser);
-      
       toast({
         title: "Registration successful",
-        description: `Welcome to JobPortal, ${name}!`,
+        description: `Welcome to JobPortal, ${name}! Please check your email to verify your account.`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration failed",
-        description: "Please try again",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
       throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error: any) {
+      console.error('Logout error:', error);
+    }
   };
 
   const value: AuthContextType = {
