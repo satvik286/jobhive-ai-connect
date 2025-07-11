@@ -20,7 +20,6 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,12 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           
           setUser(userData);
-          setToken(session.access_token);
-          localStorage.setItem('token', session.access_token);
         } else {
           setUser(null);
-          setToken(null);
-          localStorage.removeItem('token');
         }
         setLoading(false);
       }
@@ -61,8 +56,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         
         setUser(userData);
-        setToken(session.access_token);
-        localStorage.setItem('token', session.access_token);
       }
       setLoading(false);
     });
@@ -139,7 +132,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
-    token,
     login,
     register,
     logout,
