@@ -161,6 +161,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          job_id: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          job_id?: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          job_id?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
