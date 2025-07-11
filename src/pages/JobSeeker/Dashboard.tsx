@@ -6,70 +6,72 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Job } from '@/types';
-import { Search, MapPin, DollarSign, Clock, Bookmark, Eye, Filter } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { DatabaseJob } from '@/types/supabase';
+import { Search, MapPin, DollarSign, Clock, Bookmark, Eye, Filter, Send, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-// Mock data - replace with API calls
-const mockJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Senior Frontend Developer',
-    company: 'Tech Corp',
-    location: 'San Francisco, CA',
-    description: 'We are looking for a skilled Frontend Developer to join our team and build amazing user experiences...',
-    requirements: 'React, TypeScript, 3+ years experience',
-    salaryRange: '$80k - $120k',
-    jobType: 'full-time',
-    employerId: 'emp1',
-    createdAt: '2024-01-15',
-    isActive: true,
-  },
-  {
-    id: '2',
-    title: 'Product Manager',
-    company: 'StartupXYZ',
-    location: 'New York, NY',
-    description: 'Join our dynamic team as a Product Manager and drive product strategy and execution...',
-    requirements: 'MBA preferred, 5+ years PM experience',
-    salaryRange: '$100k - $140k',
-    jobType: 'full-time',
-    employerId: 'emp2',
-    createdAt: '2024-01-14',
-    isActive: true,
-  },
-  {
-    id: '3',
-    title: 'UX Designer',
-    company: 'Design Studio',
-    location: 'Remote',
-    description: 'Create amazing user experiences for our products and collaborate with cross-functional teams...',
-    requirements: 'Figma, Adobe Creative Suite, Portfolio required',
-    salaryRange: '$70k - $90k',
-    jobType: 'contract',
-    employerId: 'emp3',
-    createdAt: '2024-01-13',
-    isActive: true,
-  },
-];
+import { JobService } from '@/services/jobService';
+import { supabase } from '@/integrations/supabase/client';
 
 const JobSeekerDashboard: React.FC = () => {
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>(mockJobs);
+  const [jobs, setJobs] = useState<DatabaseJob[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<DatabaseJob[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('all');
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState<DatabaseJob | null>(null);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [applicationData, setApplicationData] = useState({
+    coverLetter: '',
+    resumeUrl: '',
+  });
+  const [applying, setApplying] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const initializeData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        await loadJobs();
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
+  }, []);
 
   useEffect(() => {
     filterJobs();
   }, [searchTerm, locationFilter, jobTypeFilter, jobs]);
 
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading active jobs...');
+      const jobsData = await JobService.getActiveJobs();
+      console.log('Loaded jobs:', jobsData);
+      setJobs(jobsData);
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load job listings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filterJobs = () => {
     setIsSearching(true);
     
-    // Simulate search delay for animation
     setTimeout(() => {
       let filtered = jobs;
 
@@ -89,7 +91,7 @@ const JobSeekerDashboard: React.FC = () => {
       }
 
       if (jobTypeFilter && jobTypeFilter !== 'all') {
-        filtered = filtered.filter(job => job.jobType === jobTypeFilter);
+        filtered = filtered.filter(job => job.job_type === jobTypeFilter);
       }
 
       setFilteredJobs(filtered);
@@ -120,6 +122,69 @@ const JobSeekerDashboard: React.FC = () => {
     setJobTypeFilter('all');
   };
 
+  const handleApplyClick = (job: DatabaseJob) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to apply for jobs",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedJob(job);
+    setShowApplicationModal(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!selectedJob || !user) return;
+
+    if (!applicationData.coverLetter.trim()) {
+      toast({
+        title: "Cover Letter Required",
+        description: "Please write a cover letter for your application",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setApplying(true);
+    
+    try {
+      console.log('Submitting application:', {
+        jobId: selectedJob.id,
+        applicantId: user.id,
+        coverLetter: applicationData.coverLetter,
+        resumeUrl: applicationData.resumeUrl || null,
+      });
+
+      await JobService.applyToJob({
+        job_id: selectedJob.id,
+        applicant_id: user.id,
+        cover_letter: applicationData.coverLetter,
+        resume_url: applicationData.resumeUrl || null,
+        status: 'pending',
+      });
+
+      toast({
+        title: "🎉 Application Submitted!",
+        description: `Your application for ${selectedJob.title} has been sent to the employer`,
+      });
+
+      setShowApplicationModal(false);
+      setApplicationData({ coverLetter: '', resumeUrl: '' });
+      setSelectedJob(null);
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Application Failed",
+        description: "Failed to submit your application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const getJobTypeColor = (type: string) => {
     switch (type) {
       case 'full-time': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -129,6 +194,18 @@ const JobSeekerDashboard: React.FC = () => {
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <h2 className="text-2xl font-bold mb-4">Please Log In</h2>
+        <p className="text-muted-foreground mb-6">You need to be logged in to view job opportunities</p>
+        <Link to="/auth/login">
+          <Button>Log In</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
@@ -240,14 +317,16 @@ const JobSeekerDashboard: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Available Jobs</h2>
-          <Link to="/saved-jobs">
-            <Button variant="outline" className="hover:bg-primary hover:text-white transition-all">
-              View Saved Jobs
-            </Button>
-          </Link>
+          <Button onClick={loadJobs} variant="outline" className="hover:bg-primary hover:text-white transition-all">
+            Refresh Jobs
+          </Button>
         </div>
         
-        {isSearching ? (
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : isSearching ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
@@ -256,7 +335,7 @@ const JobSeekerDashboard: React.FC = () => {
             <CardContent className="pt-12 pb-12 text-center">
               <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-gray-600">No jobs found</h3>
-              <p className="text-muted-foreground mb-4">Try adjusting your search criteria</p>
+              <p className="text-muted-foreground mb-4">Try adjusting your search criteria or check back later</p>
               <Button onClick={clearFilters} variant="outline">
                 Clear All Filters
               </Button>
@@ -282,18 +361,35 @@ const JobSeekerDashboard: React.FC = () => {
                           <MapPin className="h-4 w-4 mr-1" />
                           {job.location}
                         </div>
-                        <div className="flex items-center hover:text-emerald-600 transition-colors">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {job.salaryRange}
-                        </div>
+                        {job.salary_range && (
+                          <div className="flex items-center hover:text-emerald-600 transition-colors">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            {job.salary_range}
+                          </div>
+                        )}
                         <div className="flex items-center hover:text-blue-600 transition-colors">
                           <Clock className="h-4 w-4 mr-1" />
-                          {new Date(job.createdAt).toLocaleDateString()}
+                          {new Date(job.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <Badge className={`${getJobTypeColor(job.jobType)} border`}>
-                        {job.jobType.charAt(0).toUpperCase() + job.jobType.slice(1)}
+                      <Badge className={`${getJobTypeColor(job.job_type)} border mb-3`}>
+                        {job.job_type.charAt(0).toUpperCase() + job.job_type.slice(1).replace('-', ' ')}
                       </Badge>
+                      
+                      {job.required_skills && job.required_skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {job.required_skills.slice(0, 4).map((skill) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {job.required_skills.length > 4 && (
+                            <Badge variant="outline" className="text-xs bg-gray-100">
+                              +{job.required_skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex space-x-2">
@@ -309,12 +405,14 @@ const JobSeekerDashboard: React.FC = () => {
                       >
                         <Bookmark className={`h-4 w-4 ${savedJobs.includes(job.id) ? 'fill-current' : ''}`} />
                       </Button>
-                      <Link to={`/job/${job.id}`}>
-                        <Button size="sm" className="bg-primary hover:bg-primary/90 transition-all duration-200">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                      </Link>
+                      <Button 
+                        size="sm" 
+                        className="bg-primary hover:bg-primary/90 transition-all duration-200"
+                        onClick={() => handleApplyClick(job)}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Apply Now
+                      </Button>
                     </div>
                   </div>
                   
@@ -328,6 +426,70 @@ const JobSeekerDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Job Application Modal */}
+      <Dialog open={showApplicationModal} onOpenChange={setShowApplicationModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Apply for {selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Complete your application for this position at {selectedJob?.company}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Cover Letter *</label>
+              <Textarea
+                placeholder="Write a compelling cover letter explaining why you're the perfect fit for this role..."
+                rows={8}
+                value={applicationData.coverLetter}
+                onChange={(e) => setApplicationData(prev => ({ ...prev, coverLetter: e.target.value }))}
+                className="resize-none"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Resume URL (optional)</label>
+              <Input
+                placeholder="https://your-resume-link.com or leave empty"
+                value={applicationData.resumeUrl}
+                onChange={(e) => setApplicationData(prev => ({ ...prev, resumeUrl: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Provide a link to your online resume or portfolio
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowApplicationModal(false)}
+              disabled={applying}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitApplication}
+              disabled={applying || !applicationData.coverLetter.trim()}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {applying ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Application
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

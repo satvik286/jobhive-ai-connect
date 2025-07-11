@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { DatabaseJob, DatabaseJobApplication } from '@/types/supabase';
-import { Plus, Eye, Edit, Trash2, Users, Briefcase, TrendingUp, RefreshCw, MessageCircle } from 'lucide-react';
+import { Plus, Eye, Trash2, Users, Briefcase, TrendingUp, RefreshCw, MessageCircle, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { JobService } from '@/services/jobService';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,10 +15,13 @@ import { supabase } from '@/integrations/supabase/client';
 const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<DatabaseJob[]>([]);
   const [applications, setApplications] = useState<DatabaseJobApplication[]>([]);
+  const [jobApplicationCounts, setJobApplicationCounts] = useState<Record<string, number>>({});
   const [selectedJob, setSelectedJob] = useState<DatabaseJob | null>(null);
   const [showApplications, setShowApplications] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [employerMessage, setEmployerMessage] = useState('');
+  const [updatingApplication, setUpdatingApplication] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -37,6 +41,19 @@ const EmployerDashboard: React.FC = () => {
       const jobsData = await JobService.getEmployerJobs(employerId);
       console.log('Loaded jobs:', jobsData);
       setJobs(jobsData);
+      
+      // Load application counts for each job
+      const counts: Record<string, number> = {};
+      for (const job of jobsData) {
+        try {
+          const jobApplications = await JobService.getJobApplications(job.id);
+          counts[job.id] = jobApplications.length;
+        } catch (error) {
+          console.error(`Error loading applications for job ${job.id}:`, error);
+          counts[job.id] = 0;
+        }
+      }
+      setJobApplicationCounts(counts);
     } catch (error) {
       console.error('Error loading jobs:', error);
       toast({
@@ -124,6 +141,49 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
+  const handleApplicationStatusUpdate = async (
+    applicationId: string, 
+    status: 'accepted' | 'rejected'
+  ) => {
+    setUpdatingApplication(applicationId);
+    
+    try {
+      await JobService.updateApplicationStatus(
+        applicationId, 
+        status,
+        employerMessage.trim() || undefined
+      );
+
+      // Update the local applications state
+      setApplications(prev => prev.map(app => 
+        app.id === applicationId 
+          ? { 
+              ...app, 
+              status, 
+              employer_message: employerMessage.trim() || null,
+              reviewed_at: new Date().toISOString()
+            } 
+          : app
+      ));
+
+      toast({
+        title: `Application ${status === 'accepted' ? 'Accepted' : 'Rejected'}`,
+        description: `The application has been ${status}`,
+      });
+      
+      setEmployerMessage('');
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application status",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingApplication(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -143,9 +203,8 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
-  const totalApplications = jobs.reduce((sum, job) => {
-    return sum;
-  }, 0);
+  const totalApplications = Object.values(jobApplicationCounts).reduce((sum, count) => sum + count, 0);
+  const pendingApplications = applications.filter(app => app.status === 'pending').length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
@@ -224,7 +283,7 @@ const EmployerDashboard: React.FC = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-purple-600">0</p>
+                <p className="text-3xl font-bold text-purple-600">{pendingApplications}</p>
                 <p className="text-muted-foreground font-medium">Pending Reviews</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
@@ -288,7 +347,7 @@ const EmployerDashboard: React.FC = () => {
                     
                     <div className="flex flex-col sm:flex-row items-center gap-3 ml-auto">
                       <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                        👥 0 applications
+                        👥 {jobApplicationCounts[job.id] || 0} applications
                       </span>
                       <div className="flex gap-2">
                         <Button
@@ -373,25 +432,66 @@ const EmployerDashboard: React.FC = () => {
                         </div>
                       )}
                       
-                      <div className="flex flex-wrap gap-3">
-                        {application.resume_url && (
-                          <Button size="sm" variant="outline" asChild className="hover:bg-primary/10">
-                            <a href={application.resume_url} target="_blank" rel="noopener noreferrer">
-                              📄 View Resume
-                            </a>
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="hover:bg-blue/10">
-                          <MessageCircle className="h-4 w-4 mr-1" />
-                          Contact Applicant
-                        </Button>
-                        <Button size="sm" variant="outline" className="hover:bg-green/10">
-                          ✅ Accept Application
-                        </Button>
-                        <Button size="sm" variant="outline" className="hover:bg-red/10">
-                          ❌ Reject Application
-                        </Button>
-                      </div>
+                      {application.employer_message && (
+                        <div>
+                          <h5 className="font-semibold mb-2 text-base">Your Response:</h5>
+                          <p className="text-muted-foreground text-sm leading-relaxed bg-blue-50 p-4 rounded-lg">
+                            {application.employer_message}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {application.status === 'pending' && (
+                        <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">Response Message (optional)</label>
+                            <Textarea
+                              placeholder="Add a personal message to the applicant..."
+                              value={employerMessage}
+                              onChange={(e) => setEmployerMessage(e.target.value)}
+                              rows={3}
+                              className="resize-none"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-3">
+                            {application.resume_url && (
+                              <Button size="sm" variant="outline" asChild className="hover:bg-primary/10">
+                                <a href={application.resume_url} target="_blank" rel="noopener noreferrer">
+                                  📄 View Resume
+                                </a>
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'accepted')}
+                              disabled={updatingApplication === application.id}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              {updatingApplication === application.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Accept
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'rejected')}
+                              disabled={updatingApplication === application.id}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              {updatingApplication === application.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2" />
+                              ) : (
+                                <XCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

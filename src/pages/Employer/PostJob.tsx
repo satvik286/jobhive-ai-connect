@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,8 @@ const PostJob: React.FC = () => {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [skillInput, setSkillInput] = useState('');
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -32,6 +33,52 @@ const PostJob: React.FC = () => {
     required_skills: [] as string[],
     experience_level: '',
   });
+
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        console.log('Auth check result:', { user, error });
+        
+        if (error) {
+          console.error('Auth error:', error);
+          toast({
+            title: "Authentication Error",
+            description: "Please log in to post jobs",
+            variant: "destructive",
+          });
+          navigate('/auth/login');
+          return;
+        }
+        
+        if (!user) {
+          console.log('No user found, redirecting to login');
+          toast({
+            title: "Login Required",
+            description: "Please log in to post jobs",
+            variant: "destructive",
+          });
+          navigate('/auth/login');
+          return;
+        }
+        
+        console.log('User authenticated:', user.id);
+        setUser(user);
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to post jobs",
+          variant: "destructive",
+        });
+        navigate('/auth/login');
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuthentication();
+  }, [navigate]);
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -107,6 +154,16 @@ const PostJob: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to post jobs",
+        variant: "destructive",
+      });
+      navigate('/auth/login');
+      return;
+    }
+    
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -119,8 +176,10 @@ const PostJob: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // Double-check authentication before posting
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !currentUser) {
         throw new Error('User not authenticated');
       }
 
@@ -134,7 +193,7 @@ const PostJob: React.FC = () => {
         job_type: formData.job_type,
         required_skills: formData.required_skills.length > 0 ? formData.required_skills : null,
         experience_level: formData.experience_level || null,
-        employer_id: user.id,
+        employer_id: currentUser.id,
         is_active: true,
       });
 
@@ -148,7 +207,7 @@ const PostJob: React.FC = () => {
         job_type: formData.job_type,
         required_skills: formData.required_skills.length > 0 ? formData.required_skills : null,
         experience_level: formData.experience_level || null,
-        employer_id: user.id,
+        employer_id: currentUser.id,
         is_active: true,
       });
 
@@ -180,15 +239,47 @@ const PostJob: React.FC = () => {
       
     } catch (error) {
       console.error('Error posting job:', error);
-      toast({
-        title: "Error",
-        description: `Failed to post job: ${error.message}`,
-        variant: "destructive",
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('not authenticated')) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+        navigate('/auth/login');
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to post job: ${errorMessage}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+        <p className="text-muted-foreground mb-6">Please log in to post job opportunities</p>
+        <Link to="/auth/login">
+          <Button>Log In</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
