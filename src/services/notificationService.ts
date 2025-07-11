@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'job_application_accepted' | 'job_application_rejected';
+  type: 'job_application_accepted' | 'job_application_rejected' | 'new_job_application';
   title: string;
   message: string;
   job_id: string | null;
@@ -23,6 +23,14 @@ export class NotificationService {
 
     if (error) throw error;
     return (data || []) as Notification[];
+  }
+
+  static async createNotification(notification: Omit<Notification, 'id' | 'created_at'>): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .insert([notification]);
+
+    if (error) throw error;
   }
 
   static async markAsRead(notificationId: string): Promise<void> {

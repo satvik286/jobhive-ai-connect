@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, XCircle, Circle } from 'lucide-react';
+import { CheckCircle, XCircle, Circle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notification } from '@/services/notificationService';
 
@@ -20,6 +20,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'job_application_rejected':
         return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'new_job_application':
+        return <UserPlus className="h-5 w-5 text-blue-500" />;
       default:
         return <Circle className="h-5 w-5 text-blue-500" />;
     }

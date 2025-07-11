@@ -65,3 +65,15 @@ export interface DatabaseFriendship {
   created_at: string;
   updated_at: string;
 }
+
+export interface DatabaseNotification {
+  id: string;
+  user_id: string;
+  type: 'job_application_accepted' | 'job_application_rejected' | 'new_job_application';
+  title: string;
+  message: string;
+  job_id: string | null;
+  application_id: string | null;
+  is_read: boolean;
+  created_at: string;
+}
