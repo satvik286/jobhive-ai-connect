@@ -39,5 +39,6 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, role: 'jobseeker' | 'employer') => Promise<void>;
   logout: () => void;
+  signOut: () => void;
   loading: boolean;
 }

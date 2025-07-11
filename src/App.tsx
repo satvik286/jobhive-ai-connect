@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,7 +16,7 @@ import JobDetails from '@/pages/JobSeeker/JobDetails';
 import Profile from '@/pages/Profile';
 import EmployerDashboard from '@/pages/Employer/EmployerDashboard';
 import PostJob from '@/pages/Employer/PostJob';
-import Notifications from '@/pages/Notifications';
+import { Notifications } from '@/pages/Notifications';
 import NotFound from '@/pages/NotFound';
 
 import './App.css';
