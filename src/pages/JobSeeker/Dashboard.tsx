@@ -66,6 +66,8 @@ const Dashboard: React.FC = () => {
         job_id: jobId,
         applicant_id: user.id,
         status: 'pending',
+        resume_url: null,
+        cover_letter: null,
       });
 
       toast({
