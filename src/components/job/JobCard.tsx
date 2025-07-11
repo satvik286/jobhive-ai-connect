@@ -3,17 +3,28 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Building, DollarSign } from 'lucide-react';
+import { MapPin, Clock, Building, DollarSign, Users } from 'lucide-react';
 import { DatabaseJob } from '@/types/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface JobCardProps {
   job: DatabaseJob;
   onApply?: (jobId: string) => void;
   onView?: (jobId: string) => void;
   showApplyButton?: boolean;
+  applicationCount?: number;
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onApply, onView, showApplyButton = true }) => {
+const JobCard: React.FC<JobCardProps> = ({ 
+  job, 
+  onApply, 
+  onView, 
+  showApplyButton = true,
+  applicationCount 
+}) => {
+  const { user } = useAuth();
+
   const getJobTypeColor = (type: string) => {
     switch (type) {
       case 'full-time': return 'bg-green-100 text-green-800 border-green-200';
@@ -23,6 +34,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, onApply, onView, showApplyButton
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  const isEmployer = user?.role === 'employer';
+  const isJobSeeker = user?.role === 'jobseeker';
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 hover:border-primary/20">
@@ -77,16 +91,35 @@ const JobCard: React.FC<JobCardProps> = ({ job, onApply, onView, showApplyButton
             <span>Posted {new Date(job.created_at).toLocaleDateString()}</span>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {/* Show application count for employers */}
+            {isEmployer && applicationCount !== undefined && (
+              <div className="flex items-center text-sm text-muted-foreground mr-2">
+                <Users className="h-4 w-4 mr-1" />
+                <span>{applicationCount} applicant{applicationCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+            
             {onView && (
               <Button variant="outline" size="sm" onClick={() => onView(job.id)}>
                 View Details
               </Button>
             )}
-            {showApplyButton && onApply && (
+            
+            {/* Show Apply Now button only for job seekers */}
+            {isJobSeeker && showApplyButton && onApply && (
               <Button size="sm" onClick={() => onApply(job.id)} className="bg-primary hover:bg-primary/90">
                 Apply Now
               </Button>
+            )}
+            
+            {/* Show Post a Job button for employers */}
+            {isEmployer && (
+              <Link to="/employer/post-job">
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  Post a Job
+                </Button>
+              </Link>
             )}
           </div>
         </div>

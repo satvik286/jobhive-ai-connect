@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -36,7 +37,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/jobs/:id" element={<JobDetails />} />
               
-              {/* Protected Routes */}
+              {/* Protected Routes - Dashboard routes to appropriate dashboard based on role */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -52,13 +53,15 @@ function App() {
                   <Notifications />
                 </ProtectedRoute>
               } />
+              
+              {/* Employer specific routes */}
               <Route path="/employer/dashboard" element={
-                <ProtectedRoute>
+                <ProtectedRoute requireRole="employer">
                   <EmployerDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/employer/post-job" element={
-                <ProtectedRoute>
+                <ProtectedRoute requireRole="employer">
                   <PostJob />
                 </ProtectedRoute>
               } />

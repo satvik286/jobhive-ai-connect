@@ -18,6 +18,13 @@ export const Header: React.FC = () => {
     }
   };
 
+  const getDashboardLink = () => {
+    if (user?.role === 'employer') {
+      return '/employer/dashboard';
+    }
+    return '/dashboard';
+  };
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -26,12 +33,22 @@ export const Header: React.FC = () => {
         </Link>
 
         <nav className="flex items-center space-x-6 text-sm font-medium flex-1">
-          <Link to="/jobs" className="transition-colors hover:text-foreground/80">
-            Jobs
-          </Link>
-          {user && (
+          {user?.role === 'jobseeker' ? (
             <Link to="/dashboard" className="transition-colors hover:text-foreground/80">
-              Dashboard
+              Find Jobs
+            </Link>
+          ) : user?.role === 'employer' ? (
+            <>
+              <Link to="/employer/dashboard" className="transition-colors hover:text-foreground/80">
+                Dashboard
+              </Link>
+              <Link to="/employer/post-job" className="transition-colors hover:text-foreground/80">
+                Post Job
+              </Link>
+            </>
+          ) : (
+            <Link to="/jobs" className="transition-colors hover:text-foreground/80">
+              Jobs
             </Link>
           )}
         </nav>
