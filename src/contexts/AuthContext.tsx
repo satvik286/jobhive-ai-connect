@@ -143,6 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    signOut: logout, // Add alias for signOut
     loading,
   };
 

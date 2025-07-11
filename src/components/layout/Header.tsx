@@ -6,12 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
