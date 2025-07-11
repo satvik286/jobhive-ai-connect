@@ -124,7 +124,7 @@ const PostJob: React.FC = () => {
         throw new Error('User not authenticated');
       }
 
-      await JobService.createJob({
+      console.log('Creating job with data:', {
         title: formData.title,
         company: formData.company,
         location: formData.location,
@@ -137,6 +137,22 @@ const PostJob: React.FC = () => {
         employer_id: user.id,
         is_active: true,
       });
+
+      const newJob = await JobService.createJob({
+        title: formData.title,
+        company: formData.company,
+        location: formData.location,
+        description: formData.description,
+        requirements: formData.requirements,
+        salary_range: formData.salary_range || null,
+        job_type: formData.job_type,
+        required_skills: formData.required_skills.length > 0 ? formData.required_skills : null,
+        experience_level: formData.experience_level || null,
+        employer_id: user.id,
+        is_active: true,
+      });
+
+      console.log('Job created successfully:', newJob);
       
       toast({
         title: "🎉 Job Posted Successfully!",
@@ -166,7 +182,7 @@ const PostJob: React.FC = () => {
       console.error('Error posting job:', error);
       toast({
         title: "Error",
-        description: "Failed to post job. Please try again.",
+        description: `Failed to post job: ${error.message}`,
         variant: "destructive",
       });
     } finally {

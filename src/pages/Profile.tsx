@@ -10,21 +10,63 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Mail, Phone, MapPin, Briefcase, Calendar, Edit2, Save, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ProfileService } from '@/services/profileService';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: '',
+    email: '',
     phone: '',
     location: '',
     bio: '',
     skills: [] as string[],
     experience: '',
-    jobTitle: '',
+    job_title: '',
   });
+
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const profile = await ProfileService.getProfile(user.id);
+      if (profile) {
+        setProfileData({
+          name: profile.name || user.name || '',
+          email: profile.email || user.email || '',
+          phone: profile.phone || '',
+          location: profile.location || '',
+          bio: profile.bio || '',
+          skills: profile.skills || [],
+          experience: profile.experience || '',
+          job_title: profile.job_title || '',
+        });
+      } else {
+        // Set default values from auth user
+        setProfileData(prev => ({
+          ...prev,
+          name: user.name || '',
+          email: user.email || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
@@ -36,10 +78,21 @@ const Profile: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
-      // Mock API call - replace with real API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await ProfileService.createOrUpdateProfile({
+        user_id: user.id,
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+        location: profileData.location,
+        bio: profileData.bio,
+        skills: profileData.skills,
+        experience: profileData.experience,
+        job_title: profileData.job_title,
+      });
       
       toast({
         title: "Profile Updated",
@@ -48,6 +101,7 @@ const Profile: React.FC = () => {
       
       setIsEditing(false);
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Update Failed",
         description: "Failed to update profile. Please try again.",
@@ -60,17 +114,7 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset to original data
-    setProfileData({
-      name: user?.name || '',
-      email: user?.email || '',
-      phone: '',
-      location: '',
-      bio: '',
-      skills: [],
-      experience: '',
-      jobTitle: '',
-    });
+    loadProfile(); // Reload original data
   };
 
   return (
@@ -115,7 +159,7 @@ const Profile: React.FC = () => {
                 <Avatar className="h-24 w-24">
                   <AvatarImage src="/placeholder-avatar.png" />
                   <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    {profileData.name?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -240,8 +284,8 @@ const Profile: React.FC = () => {
                   <Label htmlFor="jobTitle">Current Job Title</Label>
                   <Input
                     id="jobTitle"
-                    value={profileData.jobTitle}
-                    onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                    value={profileData.job_title}
+                    onChange={(e) => handleInputChange('job_title', e.target.value)}
                     disabled={!isEditing}
                     placeholder="e.g. Software Developer"
                     className="form-input"

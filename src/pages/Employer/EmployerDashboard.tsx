@@ -9,7 +9,6 @@ import { DatabaseJob, DatabaseJobApplication } from '@/types/supabase';
 import { Plus, Eye, Edit, Trash2, Users, Briefcase, TrendingUp, RefreshCw, MessageCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { JobService } from '@/services/jobService';
-import { ProfileService } from '@/services/profileService';
 import { supabase } from '@/integrations/supabase/client';
 
 const EmployerDashboard: React.FC = () => {
@@ -34,7 +33,9 @@ const EmployerDashboard: React.FC = () => {
 
   const loadEmployerJobs = async (employerId: string) => {
     try {
+      console.log('Loading jobs for employer:', employerId);
       const jobsData = await JobService.getEmployerJobs(employerId);
+      console.log('Loaded jobs:', jobsData);
       setJobs(jobsData);
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -143,7 +144,6 @@ const EmployerDashboard: React.FC = () => {
   };
 
   const totalApplications = jobs.reduce((sum, job) => {
-    // This would need to be calculated from actual application data
     return sum;
   }, 0);
 
@@ -266,8 +266,8 @@ const EmployerDashboard: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         <h3 className="text-2xl font-bold text-gray-900 truncate">{job.title}</h3>
-                        <Badge className={`${getJobTypeColor(job.job_type)} px-3 py-1 font-medium`}>
-                          {job.job_type.charAt(0).toUpperCase() + job.job_type.slice(1).replace('-', ' ')}
+                        <Badge className={`${getJobTypeColor(job.job_type || 'full-time')} px-3 py-1 font-medium`}>
+                          {job.job_type ? job.job_type.charAt(0).toUpperCase() + job.job_type.slice(1).replace('-', ' ') : 'Full Time'}
                         </Badge>
                         <Badge variant={job.is_active ? "default" : "secondary"} className="px-3 py-1">
                           {job.is_active ? "🟢 Active" : "⚪ Inactive"}
@@ -276,7 +276,7 @@ const EmployerDashboard: React.FC = () => {
                       <div className="space-y-2 mb-4">
                         <p className="text-lg text-muted-foreground font-medium">📍 {job.location} • 💰 {job.salary_range || 'Competitive'}</p>
                         <p className="text-sm text-muted-foreground">
-                          📅 Posted {new Date(job.created_at).toLocaleDateString('en-US', { 
+                          📅 Posted {new Date(job.created_at || '').toLocaleDateString('en-US', { 
                             year: 'numeric', 
                             month: 'long', 
                             day: 'numeric' 
@@ -303,7 +303,7 @@ const EmployerDashboard: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleJobStatus(job.id, job.is_active)}
+                          onClick={() => toggleJobStatus(job.id, job.is_active || false)}
                           className="hover:bg-orange/10 transition-colors"
                         >
                           {job.is_active ? "Pause" : "Activate"}
@@ -349,17 +349,17 @@ const EmployerDashboard: React.FC = () => {
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="text-xl font-bold">Applicant {application.applicant_id.slice(0, 8)}</h4>
+                        <h4 className="text-xl font-bold">Applicant {application.applicant_id?.slice(0, 8)}</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          📅 Applied on {new Date(application.applied_at).toLocaleDateString('en-US', {
+                          📅 Applied on {new Date(application.applied_at || '').toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long', 
                             day: 'numeric'
                           })}
                         </p>
                       </div>
-                      <Badge className={`${getStatusColor(application.status)} px-3 py-1 font-medium`}>
-                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                      <Badge className={`${getStatusColor(application.status || 'pending')} px-3 py-1 font-medium`}>
+                        {application.status ? application.status.charAt(0).toUpperCase() + application.status.slice(1) : 'Pending'}
                       </Badge>
                     </div>
                     
